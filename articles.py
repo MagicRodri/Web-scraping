@@ -8,13 +8,13 @@ source_base = 'https://theconversation.com/'
 
 test_article_url = 'https://theconversation.com/humans-are-8-virus-how-the-ancient-viral-dna-in-your-genome-plays-a-role-in-human-disease-and-development-192322'
 
-def get_article_content(article_url):
+def _get_article_content(article_url):
     article_page = requests.get(article_url).text
     article_soup = BeautifulSoup(article_page, 'lxml')
     body = article_soup.find('div', itemprop='articleBody')
     return body.get_text(strip=True)
 
-def create_article_dict(article):
+def _create_article_dict(article):
     """
         Takes an article tag on https://theconversation.com/ and return the corresponding python dictionnary
     """
@@ -43,7 +43,7 @@ def create_article_dict(article):
 
         relative_link = link.get('href')
         full_link = source_base + str(relative_link).strip()
-        article_dict['content'] = get_article_content(article_url=full_link)
+        article_dict['content'] = _get_article_content(article_url=full_link)
 
         authors = []
         if article.p :
@@ -59,20 +59,29 @@ def create_article_dict(article):
 
 
 source_main_page_url = 'https://theconversation.com/us/technology'
-source_html = requests.get(source_main_page_url).text
-soup = BeautifulSoup(source_html, 'lxml')
-articles_dict = {}
-articles = soup.find_all('article')
 
-with concurrent.futures.ThreadPoolExecutor() as executor:
-    results = [executor.submit(create_article_dict,article) for article in articles]
+def articles_dict(main_page_url = source_main_page_url):
+    """
+        Function to grab all the articles on https://theconversation.com/ category main page in a python dictionnary
+        url must be in format https://theconversation.com/<lang>/<category>
+    """
+    source_html = requests.get(main_page_url).text
+    soup = BeautifulSoup(source_html, 'lxml')
+    articles_dict = {}
+    articles = soup.find_all('article')
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = [executor.submit(_create_article_dict,article) for article in articles]
 
-    for count,completed in enumerate(concurrent.futures.as_completed(results)):
-        articles_dict[count] = completed.result()
-        
-# for article in articles_dict:
-#     if not articles_dict[article]['image']:
-#         print(articles_dict[article])
-#         break
-articles_json = json.dumps(articles_dict, indent = 4)
-# print(articles_json)
+        for count,completed in enumerate(concurrent.futures.as_completed(results)):
+            articles_dict[count] = completed.result()
+    return articles_dict
+
+def articles_json(main_page_url = source_main_page_url):
+    """
+        Function to grab all the articles on https://theconversation.com/ category main page in a json format
+        url must be in format https://theconversation.com/<lang>/<category>
+    """
+    articles = articles_dict(main_page_url)
+    return json.dumps(articles, indent = 4)
+
+print(articles_json())
