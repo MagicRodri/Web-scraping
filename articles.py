@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import json
+import time
 
 source_base = 'https://theconversation.com/'
 
@@ -12,41 +13,63 @@ def get_article_content(article_url):
     body = article_soup.find('div', itemprop='articleBody')
     return body.get_text(strip=True)
 
-
-source_main_page_url = 'https://theconversation.com/us/technology'
-source_html = requests.get(source_main_page_url).text
-soup = BeautifulSoup(source_html, 'lxml')
-articles_dict = {}
-articles = soup.find_all('article')
-for count,article in enumerate(articles):
-    articles_dict[count] = {
+def create_article_dict(article):
+    """
+        Takes an article tag on https://theconversation.com/ and return the corresponding python dictionnary
+    """
+    article_dict = {
         'title' : '',
+        'image' : '',
         'summary' : '',
         'content' : '',
         'authors' : [],
         'published' : None
     }
 
+    image = article.find('img', class_='lazyload')
+    if image:
+        image_url = image.get('data-src')
+        article_dict['image'] = image_url
+
     if article.time:
-        articles_dict[count]['published'] = article.time.get('datetime')
+        article_dict['published'] = article.time.get('datetime')
+
     article_header = article.find('div' , class_ = 'article--header')
     if article_header:
         link = article_header.a
         title = link.get_text()
-        articles_dict[count]['title'] = title
+        article_dict['title'] = title
 
         relative_link = link.get('href')
         full_link = source_base + str(relative_link).strip()
-        articles_dict[count]['content'] = get_article_content(article_url=full_link)
+        article_dict['content'] = get_article_content(article_url=full_link)
 
         authors = []
         if article.p :
             for a in article.p.find_all('a'):
                 authors.append(a.get_text())
-        articles_dict[count]['authors'] = authors 
+        article_dict['authors'] = authors 
+    
     summary = article.find('div', class_ = 'content')
     if summary:
-        articles_dict[count]['summary'] = summary.span.get_text()
+        article_dict['summary'] = summary.span.get_text()
 
-articles_json = json.dumps(articles_dict[18], indent = 4)
-print(articles_json)
+    return article_dict
+
+
+source_main_page_url = 'https://theconversation.com/us/technology'
+source_html = requests.get(source_main_page_url).text
+soup = BeautifulSoup(source_html, 'lxml')
+articles_dict = {}
+articles = soup.find_all('article')
+now = time.time()
+for count,article in enumerate(articles):
+    articles_dict[count] = create_article_dict(article)
+
+print(time.time() - now)
+# for article in articles_dict:
+#     if not articles_dict[article]['image']:
+#         print(articles_dict[article])
+#         break
+articles_json = json.dumps(articles_dict, indent = 4)
+# print(articles_json)
