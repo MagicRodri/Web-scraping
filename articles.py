@@ -2,15 +2,15 @@ from bs4 import BeautifulSoup
 import requests
 import json
 
-source_base = 'https://theconversation.com/us'
+source_base = 'https://theconversation.com/'
 
-source_article_url = 'https://theconversation.com/humans-are-8-virus-how-the-ancient-viral-dna-in-your-genome-plays-a-role-in-human-disease-and-development-192322'
+test_article_url = 'https://theconversation.com/humans-are-8-virus-how-the-ancient-viral-dna-in-your-genome-plays-a-role-in-human-disease-and-development-192322'
 
 def get_article_content(article_url):
     article_page = requests.get(article_url).text
     article_soup = BeautifulSoup(article_page, 'lxml')
-    body = article_soup.find('div', itemprop = 'articleBody')
-    return body.get_text().strip()
+    body = article_soup.find('div', itemprop='articleBody')
+    return body.get_text(strip=True)
 
 
 source_main_page_url = 'https://theconversation.com/us/technology'
@@ -36,8 +36,8 @@ for count,article in enumerate(articles):
         articles_dict[count]['title'] = title
 
         relative_link = link.get('href')
-        # content = body.get_text()
-        # articles_dict[count]['content'] = content
+        full_link = source_base + str(relative_link).strip()
+        articles_dict[count]['content'] = get_article_content(article_url=full_link)
 
         authors = []
         if article.p :
@@ -48,5 +48,5 @@ for count,article in enumerate(articles):
     if summary:
         articles_dict[count]['summary'] = summary.span.get_text()
 
-articles_json = json.dumps(articles_dict, indent = 4)
-# print(articles_json)
+articles_json = json.dumps(articles_dict[18], indent = 4)
+print(articles_json)
