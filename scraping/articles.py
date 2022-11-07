@@ -58,11 +58,11 @@ def _create_article_dict(article):
     return article_dict
 
 
-source_main_page_url = 'https://theconversation.com/us/technology'
 
-def articles_dict(main_page_url = source_main_page_url):
+
+def articles_dict(main_page_url = source_base):
     """
-        Function to grab all the articles on https://theconversation.com/ category main page in a python dictionnary
+        Function to grab all the articles on https://theconversation.com/  pages in a python dictionnary
         url must be in format https://theconversation.com/<lang>/<category>
     """
     source_html = requests.get(main_page_url).text
@@ -76,12 +76,14 @@ def articles_dict(main_page_url = source_main_page_url):
             articles_dict[count] = completed.result()
     return articles_dict
 
-def articles_json(main_page_url = source_main_page_url):
+def articles_json(main_page_url = source_base):
     """
-        Function to grab all the articles on https://theconversation.com/ category main page in a json format
+        Function to grab all the articles on https://theconversation.com/  pages in a json format
         url must be in format https://theconversation.com/<lang>/<category>
     """
     articles = articles_dict(main_page_url)
     return json.dumps(articles, indent = 4)
 
-print(articles_json())
+if __name__ == '__main__':
+    endpoint = 'https://theconversation.com/'
+    print(articles_json(endpoint))
