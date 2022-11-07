@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import time
+import concurrent.futures
 
 source_base = 'https://theconversation.com/'
 
@@ -62,11 +63,13 @@ source_html = requests.get(source_main_page_url).text
 soup = BeautifulSoup(source_html, 'lxml')
 articles_dict = {}
 articles = soup.find_all('article')
-now = time.time()
-for count,article in enumerate(articles):
-    articles_dict[count] = create_article_dict(article)
 
-print(time.time() - now)
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    results = [executor.submit(create_article_dict,article) for article in articles]
+
+    for count,completed in enumerate(concurrent.futures.as_completed(results)):
+        articles_dict[count] = completed.result()
+        
 # for article in articles_dict:
 #     if not articles_dict[article]['image']:
 #         print(articles_dict[article])
