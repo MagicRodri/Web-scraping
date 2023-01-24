@@ -13,10 +13,11 @@ def get_user_agent():
     ua = UserAgent(verify_ssl=False)
     return ua.random
 
+
 @dataclass
-class AmazonScraper():
-    
-    url: str 
+class AmazonScraper:
+
+    url: str
     driver: WebDriver = None
     headless: bool = True
     endless_scroll: bool = False
@@ -36,12 +37,15 @@ class AmazonScraper():
         return self.driver
 
     def perform_endless_scroll(self) -> None:
-        current_height = self.driver.execute_script("return document.body.scrollHeight")
+        current_height = self.driver.execute_script(
+            "return document.body.scrollHeight")
         if self.endless_scroll:
             while True:
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                self.driver.execute_script(
+                    "window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(self.endless_scroll_pause)
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                new_height = self.driver.execute_script(
+                    "return document.body.scrollHeight")
                 if new_height == current_height:
                     break
                 current_height = new_height
@@ -69,6 +73,6 @@ class AmazonScraper():
         rows = extra_details_table.find("tr")
         extra_details = {}
         for row in rows:
-            key,value = row.text.split("\n")
+            key, value = row.text.split("\n")
             extra_details[key.strip()] = value.strip()
         return extra_details
