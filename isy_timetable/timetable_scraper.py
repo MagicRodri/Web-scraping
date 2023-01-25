@@ -25,6 +25,11 @@ timetable_types_value = {
     "room": "3",
 }
 
+timetable_select_names = {
+    "group": "student_group_id",
+    "teacher": "teacher",
+}
+
 
 @dataclass
 class TimetableScraper:
@@ -67,35 +72,38 @@ class TimetableScraper:
                 term.click()
                 break
 
-    def select_group(self) -> None:
-        group_value = timetable_types_value["group"]
-        group_filter_radio = self.driver.find_element(
-            By.CSS_SELECTOR, f"input[value='{group_value}']")
-        group_filter_radio.click()
-        self._submit_form()
-        group_select = self.driver.find_element(
-            By.CSS_SELECTOR, "select[name='student_group_id']")
-        for group in group_select.find_elements(By.TAG_NAME, "option"):
-            if self.group.lower() in group.text.lower():
-                group.click()
-                break
-        else:
-            raise ValueError(f"Group {self.group} not found.")
+    # def select_group(self) -> None:
+    #     group_value = timetable_types_value["group"]
+    #     group_filter_radio = self.driver.find_element(
+    #         By.CSS_SELECTOR, f"input[value='{group_value}']")
+    #     group_filter_radio.click()
+    #     self._submit_form()
+    #     group_select = self.driver.find_element(
+    #         By.CSS_SELECTOR, "select[name='student_group_id']")
+    #     for group in group_select.find_elements(By.TAG_NAME, "option"):
+    #         if self.group.lower() in group.text.lower():
+    #             group.click()
+    #             break
+    #     else:
+    #         raise ValueError(f"Group {self.group} not found.")
 
-    def select_teacher(self) -> None:
-        teacher_value = timetable_types_value["teacher"]
-        teacher_filter_radio = self.driver.find_element(
-            By.CSS_SELECTOR, f"input[value='{teacher_value}']")
-        teacher_filter_radio.click()
-        self._submit_form()
-        teacher_select = self.driver.find_element(By.CSS_SELECTOR,
-                                                  "select[name='teacher']")
-        for teacher in teacher_select.find_elements(By.TAG_NAME, "option"):
-            if self.teacher.lower() in teacher.text.lower():
-                teacher.click()
-                break
+    # def select_teacher(self) -> None:
+    #     teacher_value = timetable_types_value["teacher"]
+    #     teacher_filter_radio = self.driver.find_element(
+    #         By.CSS_SELECTOR, f"input[value='{teacher_value}']")
+    #     teacher_filter_radio.click()
+    #     self._submit_form()
+    #     teacher_select = self.driver.find_element(By.CSS_SELECTOR,
+    #                                               "select[name='teacher']")
+    #     for teacher in teacher_select.find_elements(By.TAG_NAME, "option"):
+    #         if self.teacher.lower() in teacher.text.lower():
+    #             teacher.click()
+    #             break
+    #     else:
+    #         raise ValueError(f"Teacher {self.teacher} not found.")
 
     def select_timetable_type(self) -> None:
+        """Selects the timetable type (group, teacher)"""
         if self.group and self.teacher or self.group and self.room or self.teacher and self.room:
             raise ValueError(
                 "Only one of group, teacher or room can be specified.")
@@ -104,9 +112,28 @@ class TimetableScraper:
                 "One of group, teacher or room must be specified.")
 
         if self.group:
-            self.select_group()
+            timetable_value = timetable_types_value["group"]
+            select_name = timetable_select_names["group"]
         elif self.teacher:
-            self.select_teacher()
+            timetable_value = timetable_types_value["teacher"]
+            select_name = timetable_select_names["teacher"]
+        filter_radio = self.driver.find_element(
+            By.CSS_SELECTOR, f"input[value='{timetable_value}']")
+        filter_radio.click()
+        self._submit_form()
+        select = self.driver.find_element(By.CSS_SELECTOR,
+                                          f"select[name='{select_name}']")
+        for option in select.find_elements(By.TAG_NAME, "option"):
+            if self.group and self.group.lower() in option.text.lower():
+                option.click()
+                break
+            elif self.teacher and self.teacher.lower() in option.text.lower():
+                option.click()
+                break
+        else:
+            raise ValueError(
+                f"Timetable for {self.group or self.teacher} not found.")
+
         # TODO: implement room selection
 
     def html_object(self) -> HTML:
