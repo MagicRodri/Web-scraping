@@ -101,6 +101,14 @@ class TimetableScraper:
     #             break
     #     else:
     #         raise ValueError(f"Teacher {self.teacher} not found.")
+    def _get_select(self, timetable_type, select_name):
+        filter_radio = self.driver.find_element(
+            By.CSS_SELECTOR, f"input[value='{timetable_type}']")
+        filter_radio.click()
+        self._submit_form()
+        select = self.driver.find_element(By.CSS_SELECTOR,
+                                          f"select[name='{select_name}']")
+        return select
 
     def select_timetable_type(self) -> None:
         """Selects the timetable type (group, teacher)"""
@@ -117,12 +125,8 @@ class TimetableScraper:
         elif self.teacher:
             timetable_value = timetable_types_value["teacher"]
             select_name = timetable_select_names["teacher"]
-        filter_radio = self.driver.find_element(
-            By.CSS_SELECTOR, f"input[value='{timetable_value}']")
-        filter_radio.click()
-        self._submit_form()
-        select = self.driver.find_element(By.CSS_SELECTOR,
-                                          f"select[name='{select_name}']")
+
+        select = self._get_select(timetable_value, select_name)
         for option in select.find_elements(By.TAG_NAME, "option"):
             if self.group and self.group.lower() in option.text.lower():
                 option.click()
@@ -137,12 +141,12 @@ class TimetableScraper:
         # TODO: implement room selection
 
     def html_object(self) -> HTML:
-        self.select_semester()
-        self.select_timetable_type()
-        self._submit_form()
         return HTML(html=self.driver.page_source)
 
     def get_timetables_dict(self) -> dict:
+        self.select_semester()
+        self.select_timetable_type()
+        self._submit_form()
         html = self.html_object()
         timetable_table = html.find("table", first=True)
         if not timetable_table:
@@ -166,3 +170,21 @@ class TimetableScraper:
                     timetable[header] = cell.text
                 timetables_dict[day].append(timetable)
         return timetables_dict
+
+    def get_list_of(self, *, group=False, teacher=False) -> list:
+        if group and teacher:
+            raise ValueError("Only one of group or teacher can be specified.")
+        elif not group and not teacher:
+            raise ValueError("One of group or teacher must be specified.")
+        if group:
+            timetable_value = timetable_types_value["group"]
+            select_name = timetable_select_names["group"]
+        elif teacher:
+            timetable_value = timetable_types_value["teacher"]
+            select_name = timetable_select_names["teacher"]
+        self.select_semester()
+        select = self._get_select(timetable_value, select_name)
+        the_list = []
+        for option in select.find_elements(By.TAG_NAME, "option"):
+            the_list.append((option.get_attribute('value'), option.text))
+        return the_list
