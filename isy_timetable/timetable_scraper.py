@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from fake_useragent import UserAgent
@@ -6,7 +7,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 
 
 def get_user_agent():
@@ -72,40 +72,11 @@ class TimetableScraper:
                 term.click()
                 break
 
-    # def select_group(self) -> None:
-    #     group_value = timetable_types_value["group"]
-    #     group_filter_radio = self.driver.find_element(
-    #         By.CSS_SELECTOR, f"input[value='{group_value}']")
-    #     group_filter_radio.click()
-    #     self._submit_form()
-    #     group_select = self.driver.find_element(
-    #         By.CSS_SELECTOR, "select[name='student_group_id']")
-    #     for group in group_select.find_elements(By.TAG_NAME, "option"):
-    #         if self.group.lower() in group.text.lower():
-    #             group.click()
-    #             break
-    #     else:
-    #         raise ValueError(f"Group {self.group} not found.")
-
-    # def select_teacher(self) -> None:
-    #     teacher_value = timetable_types_value["teacher"]
-    #     teacher_filter_radio = self.driver.find_element(
-    #         By.CSS_SELECTOR, f"input[value='{teacher_value}']")
-    #     teacher_filter_radio.click()
-    #     self._submit_form()
-    #     teacher_select = self.driver.find_element(By.CSS_SELECTOR,
-    #                                               "select[name='teacher']")
-    #     for teacher in teacher_select.find_elements(By.TAG_NAME, "option"):
-    #         if self.teacher.lower() in teacher.text.lower():
-    #             teacher.click()
-    #             break
-    #     else:
-    #         raise ValueError(f"Teacher {self.teacher} not found.")
     def _get_select(self, timetable_type, select_name):
         filter_radio = self.driver.find_element(
             By.CSS_SELECTOR, f"input[value='{timetable_type}']")
         filter_radio.click()
-        self._submit_form()
+        # self._submit_form()
         select = self.driver.find_element(By.CSS_SELECTOR,
                                           f"select[name='{select_name}']")
         return select
@@ -146,7 +117,7 @@ class TimetableScraper:
     def get_timetables_dict(self) -> dict:
         self.select_semester()
         self.select_timetable_type()
-        self._submit_form()
+        # self._submit_form()
         html = self.html_object()
         timetable_table = html.find("table", first=True)
         if not timetable_table:
@@ -156,19 +127,22 @@ class TimetableScraper:
         headers = []
         for td in table_header.find("td"):
             headers.append(td.text)
-
+        logging.info(f"Headers: {headers}")
         timetables_dict = {}
         table_body = timetable_table.find("tbody", first=True)
+        day = None
         for row in table_body.find("tr"):
             cells = row.find("td")
-            if len(cells) == 1:
+            if cells[0].text != "" and cells[0].text not in timetables_dict:
                 day = cells[0].text
                 timetables_dict[day] = []
+                logging.info(f"Day: {day}")
             else:
-                timetable = {}
-                for header, cell in zip(headers[1:], cells):
-                    timetable[header] = cell.text
-                timetables_dict[day].append(timetable)
+                if day is not None:
+                    timetable = {}
+                    for header, cell in zip(headers[1:], cells[1:]):
+                        timetable[header] = cell.text
+                    timetables_dict[day].append(timetable)
         return timetables_dict
 
     def get_list_of(self, *, group=False, teacher=False) -> list:
@@ -188,3 +162,12 @@ class TimetableScraper:
         for option in select.find_elements(By.TAG_NAME, "option"):
             the_list.append((option.get_attribute('value'), option.text))
         return the_list
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    scraper = TimetableScraper(academic_year="2022/2023",
+                               semester=2,
+                               group="АС-112Б")
+    print(scraper.get_list_of(group=True))
+    print(scraper.get_timetables_dict())
